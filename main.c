@@ -68,7 +68,30 @@ char charsToHex(char c1, char c2)
  */
 void encrypt(unsigned char * msg_ascii, unsigned char * key_ascii, unsigned int * msg_enc, unsigned int * key)
 {
-	// Implement this function
+	unsigned char state[4][4];
+	char* curChar = msg_ascii;
+	int i,j;
+	for(i = 0; i < 4; i++){
+		for(j = 0; j < 4; j++){
+			state[i][j] = charsToHex(*curChar, *(curChar+1));
+			curChar += 2;
+		}
+	}
+
+	keyExpansion(key_ascii, key);
+	addRoundKey(state, key, 0);
+
+	for(i = 1; i <= 9; i++){
+		subBytes(state);
+		shiftRows(state);
+		mixColumns(state);
+		addRoundKey(state, key, i);
+	}
+	subBytes(state);
+	shiftRows(state);
+	addRoundKey(state, key, 10);
+
+	msg_enc = state;	
 }
 
 /** decrypt
@@ -82,6 +105,28 @@ void decrypt(unsigned int * msg_enc, unsigned int * msg_dec, unsigned int * key)
 {
 	// Implement this function
 }
+
+void keyExpansion(unsigned char* key_ascii, unsigned int* key){
+
+}
+
+void addRoundKey(unsigned char* state, unsigned int* key, int round){
+
+}
+
+void subBytes(unsigned char* state){
+
+}
+
+void shiftRows(unsigned char* state){
+
+}
+
+void mixColumns(unsigned char* state){
+
+}
+
+
 
 /** main
  *  Allows the user to enter the message, key, and select execution mode
