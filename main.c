@@ -69,7 +69,7 @@ char charsToHex(char c1, char c2)
 void encrypt(unsigned char * msg_ascii, unsigned char * key_ascii, unsigned int * msg_enc, unsigned int * key)
 {
 	unsigned char state[4][4];
-	char* curChar = msg_ascii;
+	unsigned char* curChar = msg_ascii;		//needs unsigned 
 	int i,j;
 	for(i = 0; i < 4; i++){
 		for(j = 0; j < 4; j++){
@@ -77,9 +77,20 @@ void encrypt(unsigned char * msg_ascii, unsigned char * key_ascii, unsigned int 
 			curChar += 2;
 		}
 	}
-
-	keyExpansion(key_ascii, key);
-	addRoundKey(state, key, 0);
+	
+	unsigned char* curKey = key_ascii;
+	int i,j;
+	for(i = 0; i < 4; i++){
+		for(j = 0; j < 4; j++){
+			key[4*i+j] = charsToHex(*curChar, *(curChar+1));
+			curKey += 2;
+		}
+	}
+	
+	unsigned int* keySchedule;
+	
+	keyExpansion(key, keySchedule);
+	addRoundKey(state, keySchedule, 0);
 
 	for(i = 1; i <= 9; i++){
 		subBytes(state);
@@ -106,12 +117,39 @@ void decrypt(unsigned int * msg_enc, unsigned int * msg_dec, unsigned int * key)
 	// Implement this function
 }
 
-void keyExpansion(unsigned char* key_ascii, unsigned int* key){
-
+void keyExpansion(unsigned int* key, unsigned int* keySchedule){
+	unsigned int* temp;
+	int i = 0;
+	while (i<4, i++){
+		keySchedule[i] = {key[4*i],key[4*i+1],key[4*i+2],key[4*i+3]};
+	}
+	i = 4;
+	while (i<4*11,i++){
+		*temp = keySchedule[i-1];
+		if (i % 4 == 0){
+			temp = SubBytes(RotWord(temp)) ^ Rcon[i/4]
+		}
+		keySchedule[i] = KeySchedule[i-4] ^ temp;
+	}
 }
 
-void addRoundKey(unsigned char* state, unsigned int* key, int round){
+void RotWord(unsigned int* object){
+	unsigned int* temp;
+	*temp = object[0];
+	int i = 0;
+	for (i<3, i++){
+		object[i] = object[i+1];
+	}
+	object[3] = *temp; 
+}
 
+void addRoundKey(unsigned char* state, unsigned int* keySchedule, int round){
+	int i= 0 , j = 0;
+	for (i<4, i++){
+		for (j<4, j++){
+			state[i*4+j] = state[i*4+j] ^ keySchedule[round*16+i*4+j];
+		}
+	}
 }
 
 void subBytes(unsigned char* state){
