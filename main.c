@@ -58,6 +58,24 @@ char charsToHex(char c1, char c2)
 	return (hex1 << 4) + hex2;
 }
 
+/**
+ * Converts a char to the lower Hex
+ * @param  c   Char to be split
+ * @return     Hex Value
+ */
+char charLower(char c){
+	return c&(0x00001111);
+}
+
+/**
+ * Converts char to the higher Hex
+ * @param  c Char to be split
+ * @return   Hex Value
+ */
+char charHigher(char c){
+	return c>>4;
+}
+
 /** encrypt
  *  Perform AES encryption in software.
  *
@@ -115,7 +133,14 @@ void addRoundKey(unsigned char* state, unsigned int* key, int round){
 }
 
 void subBytes(unsigned char* state){
-
+	int i,j;
+	for(i = 0; i < 4; i++){
+		for(j = 0; j < 4; j++){
+			char x = state[i][j];
+			char y = state[i][j]>>4;
+			state[i][j] = aes_sbox[];
+		}
+	}
 }
 
 void shiftRows(unsigned char* state){
