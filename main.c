@@ -64,7 +64,7 @@ char charsToHex(char c1, char c2)
  * @return     Hex Value
  */
 char charLower(char c){
-	return c&(0x00001111);
+	return c&(0xF);
 }
 
 /**
@@ -133,22 +133,48 @@ void addRoundKey(unsigned char* state, unsigned int* key, int round){
 }
 
 void subBytes(unsigned char* state){
-	int i,j;
+	int i, j;
 	for(i = 0; i < 4; i++){
 		for(j = 0; j < 4; j++){
-			char x = state[i][j];
-			char y = state[i][j]>>4;
-			state[i][j] = aes_sbox[];
+			char x = charLower(state[i][j]);
+			char y = charHigher(state[i][j]);
+			state[i][j] = aes_sbox[x+y*16];
 		}
 	}
 }
 
 void shiftRows(unsigned char* state){
+	int i, j;
+	unsigned char stateCopy[4][4];
 
+	for(i = 0; i < 4; i++){
+		for(j = 0; j < 4; j++){
+			stateCopy[j][i] = state[j][i];
+		}
+	}
+
+	for(j = 1; j < 4; j++){
+		for(i = 0; i < 4; i++){
+			state[j][i] = stateCopy[j][(i+j)%4];
+		}
+	}
 }
 
 void mixColumns(unsigned char* state){
+	int i, j, x;
 
+	for(i = 0; i < 4; i++){
+		for(j = 0; j < 4; j++){
+			unsigned char sum = 0;
+			for(x = 0; x < 4; x++){
+				if(RGF[j][x] == 1)
+					sum ^= state[j][i];
+				else
+					sum ^= gf_mul[state[j][i]][RGF[j][x]];
+			}
+			state[j][i] = sum;
+		}
+	}
 }
 
 
