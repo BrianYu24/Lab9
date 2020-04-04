@@ -41,19 +41,19 @@ module avalon_aes_interface (
 	
 	logic[31:0] Reg[16];
 	
-	always_ff @(posedge CLK)
-	begin
-		if (Reset) begin
-			for (i = 0, i<16, i++)
-			begin
-				Reg[i] <= 32'b0;
-			end
-		end
-		
-		else
-		begin
-			
-		end
-	end
+//	always_ff @(posedge CLK)
+//	begin
+//		if (Reset) begin
+//			for (i = 0, i<16, i++)
+//			begin
+//				Reg[i] <= 32'b0;
+//			end
+//		end
+//		
+//		else
+//		begin
+//			
+//		end
+//	end
 
 endmodule
