@@ -63,7 +63,7 @@ char charsToHex(char c1, char c2)
  * @param  c   Char to be split
  * @return     Hex Value
  */
-char charLower(char c){
+unsigned char charLower(unsigned char c){
 	return c&(0xF);
 }
 
@@ -72,8 +72,29 @@ char charLower(char c){
  * @param  c Char to be split
  * @return   Hex Value
  */
-char charHigher(char c){
+unsigned char charHigher(unsigned char c){
 	return c>>4;
+}
+
+void printState(unsigned char state[4][4]){
+	int row, columns;
+	for (row=0; row<4; row++)
+	{
+	    for(columns=0; columns<4; columns++)
+	        {
+	         printf("%d     ", state[row][columns]);
+	        }
+	    printf("\n");
+	 }
+}
+
+void printkeySchedule(unsigned char keySchedule[44]){
+	int i;
+	for (i=0; i<4; i++)
+	{
+		printf("%d", keySchedule[40+i]);
+	    printf("\n");
+	 }
 }
 
 
@@ -100,7 +121,7 @@ void RotWord(unsigned int* object){
 	for (i = 0; i<4;  i++){
 		curChar[i] = (*object)>>((3-i)*8);
 	}
-
+	*object = 0;
 	for (i = 0; i<4; i++){
 		*object += curChar[(i+1)%4]<<(8*(3-i));
 	}
@@ -108,19 +129,19 @@ void RotWord(unsigned int* object){
 }
 
 void keyExpansion(unsigned int* key, unsigned int* keySchedule){
-	unsigned int* temp = NULL;
+	unsigned int temp;
 	int i;
 	for (i = 0; i<4 ; i++){
-		keySchedule[i] = (key[4*0+i]<<24)+(key[4*1+i]<<16)+(key[4*2+i]<<8)+key[4*3+i];
+		keySchedule[i] = key[i];
 	}
 	for (i = 4; i<4*11; i++){
-		*temp = keySchedule[i-1];
+		temp = keySchedule[i-1];
 		if (i % 4 == 0){
 			RotWord(temp);
 			SubWord(temp);
-			*temp ^= Rcon[i/4];
+			temp ^= Rcon[i/4];
 		}
-		keySchedule[i] = keySchedule[i-4] ^ *temp;
+		keySchedule[i] = keySchedule[i-4] ^ temp;
 	}
 }
 
@@ -173,6 +194,7 @@ void mixColumns(unsigned char state[4][4]){
 	int i, j, x;
 
 	for(i = 0; i < 4; i++){
+		unsigned char tempState[4];
 		for(j = 0; j < 4; j++){
 			unsigned char sum = 0;
 			for(x = 0; x < 4; x++){
@@ -181,10 +203,14 @@ void mixColumns(unsigned char state[4][4]){
 				else
 					sum ^= gf_mul[state[j][i]][RGF[j][x]];
 			}
-			state[j][i] = sum;
+			tempState[j] = sum;
+		}
+		for (j = 0; j<4; j++){
+			state[j][i] = tempState[j];
 		}
 	}
 }
+
 
 
 /** encrypt
@@ -195,6 +221,12 @@ void mixColumns(unsigned char state[4][4]){
  *  Output:  msg_enc - Pointer to 4x 32-bit int array that contains the encrypted message
  *               key - Pointer to 4x 32-bit int array that contains the input key
  */
+
+//Key
+//000102030405060708090a0b0c0d0e0f
+//Test
+//ece298dcece298dcece298dcece298dc
+
 
 void encrypt(unsigned char * msg_ascii, unsigned char * key_ascii, unsigned int * msg_enc, unsigned int * key)
 {
@@ -207,29 +239,41 @@ void encrypt(unsigned char * msg_ascii, unsigned char * key_ascii, unsigned int 
 			curChar += 2;
 		}
 	}
+	//printState(state);
 
 	unsigned char* curKey = key_ascii;
 	for(i = 0; i < 4; i++){
-		for(j = 0; j < 4; j++){
-			key[4*i+j] = charsToHex(*curChar, *(curChar+1));
-			curKey += 2;
-		}
+		key[i] = charsToHex(*curChar, *(curChar+1))<<24+charsToHex(*(curChar+2), *(curChar+3))<<16+charsToHex(*(curChar+4), *(curChar+5))<<8+charsToHex(*(curChar+6), *(curChar+7));
+		curKey += 8;
 	}
+
+	unsigned int* hex_display = 0X20;
+	*hex_display = (key[0]>>16)<<16+(key[3]&0xFF);
 
 	unsigned int keySchedule[44];
 
 	keyExpansion(key, keySchedule);
+	printkeySchedule(keySchedule);
 	addRoundKey(state, keySchedule, 0);
+	//printState(state);
 
 	for(i = 1; i <= 9; i++){
+		printf('%d', i);
 		subBytes(state);
+		//printState(state);
 		shiftRows(state);
+		//printState(state);
 		mixColumns(state);
+		//printState(state);
 		addRoundKey(state, keySchedule, i);
+		//printState(state);
 	}
 	subBytes(state);
+	//printState(state);
 	shiftRows(state);
+	//printState(state);
 	addRoundKey(state, keySchedule, 10);
+	//printState(state);
 
 	for (i = 0; i<4 ; i++){
 		msg_enc[i] = (state[0][i]<<24)+(state[1][i]<<16)+(state[2][i]<<8)+state[3][i];
