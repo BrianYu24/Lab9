@@ -119,7 +119,7 @@ void RotWord(unsigned int* object){
 	unsigned char curChar [4];
 	int i;
 	for (i = 0; i<4;  i++){
-		curChar[i] = (*object)>>((3-i)*8);
+		curChar[i] = (*object)>>((3-i)*8)&(0xFF);
 	}
 	*object = 0;
 	for (i = 0; i<4; i++){
