@@ -40,20 +40,60 @@ module avalon_aes_interface (
 );
 	
 	logic[31:0] Reg[16];
+	logic[31:0] WriteData;
+	logic Done;
+	logic[127:0] Decrypt_Data;
 	
-//	always_ff @(posedge CLK)
-//	begin
-//		if (Reset) begin
-//			for (i = 0, i<16, i++)
-//			begin
-//				Reg[i] <= 32'b0;
-//			end
-//		end
-//		
-//		else
-//		begin
-//			
-//		end
-//	end
+	AES aes (
+		.Clk, .RESET, .AES_START(Reg[14][0]), .AES_DONE(Done),
+		.AES_KEY({Reg[0],Reg[1],Reg[2],Reg[3]}),
+		.AES_MSG_ENC({Reg[4],Reg[5],Reg[6],Reg[7]}),
+		.AES_MSG_DEC(Decrypt_Data),
+	);
+	
+	
+	always_ff @(posedge CLK)
+	begin
+		if (RESET)
+		begin
+			for (int i = 0; i<16; i++)
+			{
+				Reg[i] <= 32'b0;
+			}
+		end
+		
+		else if(AVL_WRITE && AVL_CS)
+			Reg[AVL_ADDR] <= WriteData;
+		
+		else if(Done)
+		begin
+			Reg[15][0] = Done;
+			Reg[8] = Decrypt_Data[127:96];
+			Reg[9] = Decrypt_Data[95:64];
+			Reg[10] = Decrypt_Data[63:32];
+			Reg[11] = Decrypt_Data[31:0];
+		end
+			
+		else if(AVL_READ && AVL_CS)
+			AVL_READDATA <= REG[AVL_ADDR];
+		
+	end
+	
+	
+	always_comb 
+	begin
+		
+		case (byteenable)
+			1111: WriteData = AVL_WRITEDATA;
+			1100: WriteData = {AVL_WRITEDATA[31:16],{16{1'b0}}};
+			0011: WriteData = {{16{1'b0}},AVL_WRITEDATA[15:0]};
+			1000: WriteData = {AVL_WRITEDATA[31:24],{24{1'b0}}};
+			0100: WriteData = {{8{1'b0}},AVL_WRITEDATA[23:16],{16{1'b0}}};
+			0010: WriteData = {{16{1'b0}},AVL_WRITEDATA[15:8],{8{1'b0}}};
+			0010: WriteData = {{24{1'b0}},AVL_WRITEDATA[7:0]};
+		endcase
+		
+	end
+	
 
 endmodule
