@@ -79,7 +79,7 @@ begin
 			nextState = invSubBytesOut;
 		2'd5:
 			if(word == 3)
-				nextState = {mixWord[0],mixWord[1],mixWord[2],mixWord[3]}'
+				nextState = {mixWord[0],mixWord[1],mixWord[2],mixWord[3]};
 			else
 				nextState = curState;
 		default:
