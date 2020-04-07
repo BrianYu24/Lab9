@@ -45,7 +45,7 @@ module avalon_aes_interface (
 	logic[127:0] Decrypt_Data;
 	
 	AES aes (
-		.Clk, .RESET, .AES_START(Reg[14][0]), .AES_DONE(Done),
+		.CLK, .RESET, .AES_START(Reg[14][0]), .AES_DONE(Done),
 		.AES_KEY({Reg[0],Reg[1],Reg[2],Reg[3]}),
 		.AES_MSG_ENC({Reg[4],Reg[5],Reg[6],Reg[7]}),
 		.AES_MSG_DEC(Decrypt_Data),
@@ -57,9 +57,7 @@ module avalon_aes_interface (
 		if (RESET)
 		begin
 			for (int i = 0; i<16; i++)
-			{
 				Reg[i] <= 32'b0;
-			}
 		end
 		
 		else if(AVL_WRITE && AVL_CS)
@@ -75,7 +73,7 @@ module avalon_aes_interface (
 		end
 			
 		else if(AVL_READ && AVL_CS)
-			AVL_READDATA <= REG[AVL_ADDR];
+			AVL_READDATA <= Reg[AVL_ADDR];
 		
 	end
 	
@@ -83,7 +81,7 @@ module avalon_aes_interface (
 	always_comb 
 	begin
 		
-		case (byteenable)
+		case (AVL_BYTE_EN)
 			1111: WriteData = AVL_WRITEDATA;
 			1100: WriteData = {AVL_WRITEDATA[31:16],{16{1'b0}}};
 			0011: WriteData = {{16{1'b0}},AVL_WRITEDATA[15:0]};
@@ -93,7 +91,10 @@ module avalon_aes_interface (
 			0010: WriteData = {{24{1'b0}},AVL_WRITEDATA[7:0]};
 		endcase
 		
+		EXPORT_DATA = {Reg[0][31:16],Reg[3][15:0]};
+		
 	end
 	
+
 
 endmodule

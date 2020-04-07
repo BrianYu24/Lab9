@@ -32,7 +32,7 @@ KeyExpansion keyExpansion_inst (
 	.KeySchedule
 );
 
-assign curKey = KeySchedule[count*127+127:count*127];
+assign curKey = KeySchedule[count*127+:127];
 
 InvShiftRows invShiftRows_inst (
 	.data_in(curState), 
@@ -41,13 +41,14 @@ InvShiftRows invShiftRows_inst (
 
 SubBytes subBytes_inst (
 	.clk(CLK),
-	in(curState),
-	out(invSubBytesOut)
+	.in(curState),
+	.out(invSubBytesOut)
 );
 
+
 InvMixColumns invMixColumns (
-	in(curState[word*32+32:word*32]),
-	out(mixWord[word])
+	.in(curState[word*32+:32]),
+	.out(mixWord[word])
 );
 
 always_ff @ (posedge CLK)
@@ -57,18 +58,18 @@ begin
 	else if(AES_START)
 	begin
 		AES_MSG_DEC <= 127'b0;
-		state <= nextState;
+		curState <= nextState;
 	end
 	else
 	begin
-		AES_MSG_DEC <= state;
-		state <= nextState;
+		AES_MSG_DEC <= curState;
+		curState <= nextState;
 	end
 end
 
 always_comb
 begin
-	case (FUNC):
+	case (FUNC)
 		2'd0:
 			nextState = curState;
 		2'd2:
@@ -159,8 +160,10 @@ module AES_Controller (
 		
 		case (State)
 			Halted:
+			begin
 				count = 4'b0;
 				AES_DONE = 1'b1;
+			end
 			
 			AddRoundKey:
 				FUNC = 3'd2;
@@ -172,21 +175,29 @@ module AES_Controller (
 				FUNC = 3'd4;
 			
 			InvMixColumns1:
+			begin
 				FUNC = 3'd5;
 				word = 2'd0;
+			end
 			
 			InvMixColumns2:
+			begin
 				FUNC = 3'd5;
 				word = 2'd1;
+			end
 			
 			InvMixColumns3:
+			begin
 				FUNC = 3'd5;
 				word = 2'd2;
+			end
 			
 			InvMixColumns4:
+			begin
 				FUNC = 3'd5;
 				word = 2'd3;
-				
+			end
+			
 			default: ;
 		endcase
 	end
