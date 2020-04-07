@@ -20,6 +20,7 @@ module AES (
 logic [1407:0] KeySchedule;
 logic [127:0] curKey, curState, nextState, invShiftRowsOut, invSubBytesOut;
 logic [32:0] mixWord[3:0];
+logic [32:0] mixInput;
 logic [3:0] count;
 logic [2:0] FUNC;
 logic [1:0] word;
@@ -45,9 +46,22 @@ SubBytes subBytes_inst (
 	.out(invSubBytesOut)
 );
 
+always_comb
+begin
+	unique case(word)
+		2'd0:
+			mixInput = curState[31:0];
+		2'd1:
+			mixInput = curState[63:32];
+		2'd2:
+			mixInput = curState[95:64];
+		2'd3:
+			mixInput = curState[127:96];
+	end case
+end
 
 InvMixColumns invMixColumns (
-	.in(curState[word*32+:32]),
+	.in(mixInput),
 	.out(mixWord[word])
 );
 
