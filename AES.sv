@@ -115,7 +115,7 @@ module AES_Controller (
 		else if(State == InvShiftRows)
 		begin
 			State <= Next_state;
-			count <= count+1;
+			count <= count+4'b1;
 		end
 		else
 			State <= Next_state;
@@ -156,12 +156,13 @@ module AES_Controller (
 				Next_state = InvMixColumns4;
 			InvMixColumns4 :
 				Next_state = InvShiftRows;
+			default:
+				Next_state = State;
 		endcase
 		
 		case (State)
 			Halted:
 			begin
-				count = 4'b0;
 				AES_DONE = 1'b1;
 			end
 			
