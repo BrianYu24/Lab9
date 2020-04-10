@@ -19,8 +19,8 @@ module AES (
 
 logic [1407:0] KeySchedule;
 logic [127:0] curKey, curState, nextState, invShiftRowsOut, invSubBytesOut;
-logic [32:0] mixWord[3:0];
-logic [32:0] mixInput;
+logic [31:0] mixWord;
+logic [31:0] mixInput;
 logic [3:0] count;
 logic [2:0] FUNC;
 logic [1:0] word;
@@ -33,18 +33,30 @@ KeyExpansion keyExpansion_inst (
 	.KeySchedule
 );
 
-assign curKey = KeySchedule[count*127+:127];
+always_comb
+begin
+curKey = 127'b0;
+case(count)
+	4'd0: curKey = KeySchedule[127:0];
+	4'd1: curKey = KeySchedule[255:128];
+	4'd2: curKey = KeySchedule[383:256];
+	4'd3: curKey = KeySchedule[511:384];
+	4'd4: curKey = KeySchedule[639:512];
+	4'd5: curKey = KeySchedule[767:640];
+	4'd6: curKey = KeySchedule[895:768];
+	4'd7: curKey = KeySchedule[1023:896];
+	4'd8: curKey = KeySchedule[1151:1024];
+	4'd9: curKey = KeySchedule[1279:1152];
+	4'd10: curKey = KeySchedule[1407:1280];
+endcase
+end
 
 InvShiftRows invShiftRows_inst (
 	.data_in(curState), 
 	.data_out(invShiftRowsOut)
 );
 
-SubBytes subBytes_inst (
-	.clk(CLK),
-	.in(curState),
-	.out(invSubBytesOut)
-);
+InvSubBytes subBytes_inst[15:0] (.clk(CLK), .in(curState), .out(invSubBytesOut));
 
 always_comb
 begin
@@ -57,22 +69,22 @@ begin
 			mixInput = curState[95:64];
 		2'd3:
 			mixInput = curState[127:96];
-	end case
+	endcase
 end
 
 InvMixColumns invMixColumns (
 	.in(mixInput),
-	.out(mixWord[word])
+	.out(mixWord)
 );
 
 always_ff @ (posedge CLK)
 begin
 	if(RESET)
-		AES_MSG_DEC <= 127'b0;
-	else if(AES_START)
+		AES_MSG_DEC <= 128'b0;
+	else if(FUNC==6)
 	begin
-		AES_MSG_DEC <= 127'b0;
-		curState <= nextState;
+		AES_MSG_DEC <= 128'b0;
+		curState <= AES_MSG_ENC;
 	end
 	else
 	begin
@@ -83,27 +95,48 @@ end
 
 always_comb
 begin
+	//curKey = 128'b0;
 	case (FUNC)
-		2'd0:
+		3'd0:
 			nextState = curState;
-		2'd2:
-			nextState = curState^curKey;
-		2'd3:
+		3'd1:
+		begin
+			nextState = curState;
+		end
+		3'd2:
+		begin
+			//KeySchedule[(count)*128+:127];
+			nextState = curState ^ curKey;
+		end
+		3'd3:
 			nextState = invShiftRowsOut;
-		2'd4:
+		3'd4:
 			nextState = invSubBytesOut;
-		2'd5:
-			if(word == 3)
-				nextState = {mixWord[0],mixWord[1],mixWord[2],mixWord[3]};
-			else
-				nextState = curState;
-		default:
-			nextState = curState;
+		3'd5:
+			unique case(word)
+				2'd0:
+					nextState = {curState[127:32],mixWord};
+				2'd1:
+					nextState = {curState[127:64],mixWord,curState[31:0]};
+				2'd2:
+					nextState = {curState[127:96],mixWord,curState[63:0]};
+				2'd3:
+					nextState = {mixWord,curState[95:0]};
+				default:
+					nextState = curState;
+			endcase
+		
+		default: nextState = curState;
 	endcase
 end
 
 
 endmodule
+
+
+
+
+
 
 module AES_Controller (
 	input logic CLK,
@@ -117,7 +150,7 @@ module AES_Controller (
 
 	// FUNC: 0 - Halt, 2 - AddRoundKey, 3 - InvShiftRows, 4 - InvSubBytes, 5 - MixColumns
 	
-	enum logic [3:0] {Halted, AddRoundKey, InvShiftRows, InvSubBytes, InvMixColumns1, InvMixColumns2, InvMixColumns3, InvMixColumns4} State, Next_state;
+	enum logic [4:0] {Halted, StartState, KeyExpansion1, KeyExpansion2, KeyExpansion3, KeyExpansion4, KeyExpansion5, KeyExpansion6, AddRoundKey, InvShiftRows, InvSubBytes, InvMixColumns1, InvMixColumns2, InvMixColumns3, InvMixColumns4, FinishedWait, End} State, Next_state;
 
 	always_ff @ (posedge CLK)
 	begin
@@ -125,6 +158,11 @@ module AES_Controller (
 		begin
 			State <= Halted;
 			count <= 4'b0;
+		end
+		else if (State == End)
+		begin
+			count <= 4'b0;
+			State <= Next_state;
 		end
 		else if(State == InvShiftRows)
 		begin
@@ -143,18 +181,37 @@ module AES_Controller (
 		word = 2'b0;
 		FUNC = 3'b0;
 		
-		unique case (State)
+		case (State)
 			Halted :
+			begin
 				if (AES_START)
-					Next_state = AddRoundKey;
+					Next_state = StartState;
+			end
+			StartState:
+				Next_state = KeyExpansion1;
+				
+			KeyExpansion1:
+				Next_state = KeyExpansion2;
+			KeyExpansion2:
+				Next_state = KeyExpansion3;
+			KeyExpansion3:
+				Next_state = KeyExpansion4;
+			KeyExpansion4:
+				Next_state = KeyExpansion5;
+			KeyExpansion5:
+				Next_state = KeyExpansion6;
+			KeyExpansion6:
+				Next_state = AddRoundKey;
 			
 			AddRoundKey :
+			begin
 				if(count == 0)
 					Next_state = InvShiftRows;
-				else if(count == 9)
-					Next_state = Halted;
+				else if(count == 10)								////count == 10
+					Next_state = FinishedWait;
 				else
 					Next_state = InvMixColumns1;
+			end
 					
 			InvShiftRows :
 				Next_state = InvSubBytes;
@@ -170,16 +227,38 @@ module AES_Controller (
 				Next_state = InvMixColumns4;
 			InvMixColumns4 :
 				Next_state = InvShiftRows;
-			default:
-				Next_state = State;
+			
+			FinishedWait :
+			begin
+				if(AES_START)
+					Next_state = FinishedWait;
+				else
+					Next_state = End;
+			end
+			
+			End :
+			begin
+				if(AES_START)
+					Next_state = StartState;
+			end
+			
 		endcase
 		
 		case (State)
-			Halted:
+			Halted:;
+			StartState:
+				FUNC = 3'd6;
+			End:
+			begin
+				AES_DONE = 1'b1;
+			end
+			FinishedWait:
 			begin
 				AES_DONE = 1'b1;
 			end
 			
+			KeyExpansion1, KeyExpansion2,KeyExpansion3, KeyExpansion4,KeyExpansion5, KeyExpansion6:
+				FUNC = 3'd1;
 			AddRoundKey:
 				FUNC = 3'd2;
 			
@@ -212,6 +291,7 @@ module AES_Controller (
 				FUNC = 3'd5;
 				word = 2'd3;
 			end
+			
 			
 			default: ;
 		endcase
