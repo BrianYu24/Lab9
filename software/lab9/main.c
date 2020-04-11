@@ -298,20 +298,8 @@ void decrypt(unsigned int * msg_enc, unsigned int * msg_dec, unsigned int * key)
 	AES_PTR[6] = msg_enc[2];
 	AES_PTR[7] = msg_enc[3];
 
-	printf("%08x \n", AES_PTR[8]);
-	printf("%08x \n", AES_PTR[9]);
-	printf("%08x \n", AES_PTR[10]);
-	printf("%08x \n", AES_PTR[11]);
-
-	printf("%d \n", AES_PTR[15]);
-
 	AES_PTR[14] = 1;
-	printf("%d \n", AES_PTR[15]);
 
-	printf("%08x \n", AES_PTR[8]);
-	printf("%08x \n", AES_PTR[9]);
-	printf("%08x \n", AES_PTR[10]);
-	printf("%08x \n", AES_PTR[11]);
 	while (AES_PTR[15]==0){}
 
 	msg_dec[0] = AES_PTR[8];
@@ -319,11 +307,7 @@ void decrypt(unsigned int * msg_enc, unsigned int * msg_dec, unsigned int * key)
 	msg_dec[2] = AES_PTR[10];
 	msg_dec[3] = AES_PTR[11];
 
-	printf("get here");
-	printf("%08x", AES_PTR[8]);
-	printf("%08x", AES_PTR[9]);
-	printf("%08x", AES_PTR[10]);
-	printf("%08x", AES_PTR[11]);
+	AES_PTR[14] = 0;
 }
 
 
