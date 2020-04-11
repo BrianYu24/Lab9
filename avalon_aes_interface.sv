@@ -39,7 +39,7 @@ module avalon_aes_interface (
 
 );
 	
-	logic[31:0] Reg[16];
+	logic[31:0] Reg[15:0];
 	logic[31:0] WriteData;
 	logic Done;
 	logic[127:0] Decrypt_Data;
@@ -48,7 +48,7 @@ module avalon_aes_interface (
 		.CLK, .RESET, .AES_START(Reg[14][0]), .AES_DONE(Done),
 		.AES_KEY({Reg[0],Reg[1],Reg[2],Reg[3]}),
 		.AES_MSG_ENC({Reg[4],Reg[5],Reg[6],Reg[7]}),
-		.AES_MSG_DEC(Decrypt_Data),
+		.AES_MSG_DEC(Decrypt_Data)
 	);
 	
 	
@@ -65,15 +65,12 @@ module avalon_aes_interface (
 		
 		else if(Done)
 		begin
-			Reg[15][0] = Done;
-			Reg[8] = Decrypt_Data[127:96];
-			Reg[9] = Decrypt_Data[95:64];
-			Reg[10] = Decrypt_Data[63:32];
-			Reg[11] = Decrypt_Data[31:0];
+			Reg[8] <= Decrypt_Data[127:96];
+			Reg[9] <= Decrypt_Data[95:64];
+			Reg[10] <= Decrypt_Data[63:32];
+			Reg[11] <= Decrypt_Data[31:0];
+			Reg[15][0] <= Done;
 		end
-			
-		else if(AVL_READ && AVL_CS)
-			AVL_READDATA <= Reg[AVL_ADDR];
 		
 	end
 	
@@ -81,15 +78,21 @@ module avalon_aes_interface (
 	always_comb 
 	begin
 		
-		case (AVL_BYTE_EN)
-			1111: WriteData = AVL_WRITEDATA;
-			1100: WriteData = {AVL_WRITEDATA[31:16],{16{1'b0}}};
-			0011: WriteData = {{16{1'b0}},AVL_WRITEDATA[15:0]};
-			1000: WriteData = {AVL_WRITEDATA[31:24],{24{1'b0}}};
-			0100: WriteData = {{8{1'b0}},AVL_WRITEDATA[23:16],{16{1'b0}}};
-			0010: WriteData = {{16{1'b0}},AVL_WRITEDATA[15:8],{8{1'b0}}};
-			0010: WriteData = {{24{1'b0}},AVL_WRITEDATA[7:0]};
-		endcase
+		//case (AVL_BYTE_EN)
+		//	4'b1111: WriteData = AVL_WRITEDATA;
+		//	4'b1100: WriteData = {AVL_WRITEDATA[31:16],{16{1'b0}}};
+		//	4'b0011: WriteData = {{16{1'b0}},AVL_WRITEDATA[15:0]};
+		//	4'b1000: WriteData = {AVL_WRITEDATA[31:24],{24{1'b0}}};
+		//	4'b0100: WriteData = {{8{1'b0}},AVL_WRITEDATA[23:16],{16{1'b0}}};
+		//	4'b0010: WriteData = {{16{1'b0}},AVL_WRITEDATA[15:8],{8{1'b0}}};
+		//	4'b0010: WriteData = {{24{1'b0}},AVL_WRITEDATA[7:0]};
+		//	default: WriteData = AVL_WRITEDATA;
+		//endcase
+		
+		if (AVL_READ && AVL_CS)
+			AVL_READDATA = Reg[AVL_ADDR];
+		else
+			AVL_READDATA = 32'b0;
 		
 		EXPORT_DATA = {Reg[0][31:16],Reg[3][15:0]};
 		
