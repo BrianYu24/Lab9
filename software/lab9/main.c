@@ -247,7 +247,6 @@ void encrypt(unsigned char * msg_ascii, unsigned char * key_ascii, unsigned int 
 			curChar += 2;
 		}
 	}
-	printState(state);
 
 	unsigned char* curKey = key_ascii;
 	for(i = 0; i < 4; i++){
@@ -261,27 +260,17 @@ void encrypt(unsigned char * msg_ascii, unsigned char * key_ascii, unsigned int 
 	unsigned int keySchedule[44];
 
 	keyExpansion(key, keySchedule);
-	printkeySchedule(keySchedule);
 	addRoundKey(state, keySchedule, 0);
-	printState(state);
 
 	for(i = 1; i <= 9; i++){
-		printf("Start from here");
 		subBytes(state);
-		printState(state);
 		shiftRows(state);
-		printState(state);
 		mixColumns(state);
-		printState(state);
 		addRoundKey(state, keySchedule, i);
-		printState(state);
 	}
 	subBytes(state);
-	//printState(state);
 	shiftRows(state);
-	//printState(state);
 	addRoundKey(state, keySchedule, 10);
-	//printState(state);
 
 	for (i = 0; i<4 ; i++){
 		msg_enc[i] = (state[0][i]<<24)+(state[1][i]<<16)+(state[2][i]<<8)+state[3][i];
@@ -298,6 +287,43 @@ void encrypt(unsigned char * msg_ascii, unsigned char * key_ascii, unsigned int 
 void decrypt(unsigned int * msg_enc, unsigned int * msg_dec, unsigned int * key)
 {
 	// Implement this function
+	volatile unsigned int * AES_PTR = (unsigned int *) 0x100;
+	AES_PTR[0] = key[0];
+	AES_PTR[1] = key[1];
+	AES_PTR[2] = key[2];
+	AES_PTR[3] = key[3];
+
+	AES_PTR[4] = msg_enc[0];
+	AES_PTR[5] = msg_enc[1];
+	AES_PTR[6] = msg_enc[2];
+	AES_PTR[7] = msg_enc[3];
+
+	printf("%08x \n", AES_PTR[8]);
+	printf("%08x \n", AES_PTR[9]);
+	printf("%08x \n", AES_PTR[10]);
+	printf("%08x \n", AES_PTR[11]);
+
+	printf("%d \n", AES_PTR[15]);
+
+	AES_PTR[14] = 1;
+	printf("%d \n", AES_PTR[15]);
+
+	printf("%08x \n", AES_PTR[8]);
+	printf("%08x \n", AES_PTR[9]);
+	printf("%08x \n", AES_PTR[10]);
+	printf("%08x \n", AES_PTR[11]);
+	while (AES_PTR[15]==0){}
+
+	msg_dec[0] = AES_PTR[8];
+	msg_dec[1] = AES_PTR[9];
+	msg_dec[2] = AES_PTR[10];
+	msg_dec[3] = AES_PTR[11];
+
+	printf("get here");
+	printf("%08x", AES_PTR[8]);
+	printf("%08x", AES_PTR[9]);
+	printf("%08x", AES_PTR[10]);
+	printf("%08x", AES_PTR[11]);
 }
 
 
@@ -337,6 +363,21 @@ int main()
 				printf("%08x", msg_enc[i]);
 			}
 			printf("\n");
+
+
+			printf("\nBefore Decrypted message is: \n");
+			for(i = 0; i < 4; i++){
+					printf("%08x", msg_dec[i]);
+				}
+			printf("\n");
+
+			printf("\nBefore Key is: \n");
+			for(i = 0; i < 4; i++){
+					printf("%08x", key[i]);
+				}
+			printf("\n");
+
+
 			decrypt(msg_enc, msg_dec, key);
 			printf("\nDecrypted message is: \n");
 			for(i = 0; i < 4; i++){
