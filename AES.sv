@@ -150,7 +150,7 @@ module AES_Controller (
 
 	// FUNC: 0 - Halt, 2 - AddRoundKey, 3 - InvShiftRows, 4 - InvSubBytes, 5 - MixColumns
 	
-	enum logic [4:0] {Halted, StartState, KeyExpansion1, KeyExpansion2, KeyExpansion3, KeyExpansion4, KeyExpansion5, KeyExpansion6, AddRoundKey, InvShiftRows, InvSubBytes, InvMixColumns1, InvMixColumns2, InvMixColumns3, InvMixColumns4, FinishedWait1,FinishedWait2, FinishedWait3, End} State, Next_state;
+	enum logic [4:0] {Halted, StartState, KeyExpansion1, KeyExpansion2, KeyExpansion3, KeyExpansion4, KeyExpansion5, KeyExpansion6, AddRoundKey, InvShiftRows, InvSubBytes, InvMixColumns1, InvMixColumns2, InvMixColumns3, InvMixColumns4, End} State, Next_state;
 
 	always_ff @ (posedge CLK)
 	begin
@@ -184,7 +184,7 @@ module AES_Controller (
 		case (State)
 			Halted :
 			begin
-				if (AES_START)
+				if (AES_START == 1)
 					Next_state = StartState;
 			end
 			StartState:
@@ -208,7 +208,7 @@ module AES_Controller (
 				if(count == 0)
 					Next_state = InvShiftRows;
 				else if(count == 10)								////count == 10
-					Next_state = FinishedWait1;
+					Next_state = End;
 				else
 					Next_state = InvMixColumns1;
 			end
@@ -228,45 +228,24 @@ module AES_Controller (
 			InvMixColumns4 :
 				Next_state = InvShiftRows;
 			
-			FinishedWait1:
-				Next_state = FinishedWait2;
-			FinishedWait2 :
-				Next_state = FinishedWait3;
-			FinishedWait3:
-			begin
-				if(AES_START)
-					Next_state = FinishedWait3;
-				else
-					Next_state = End;
-			end
-			
 			End :
 			begin
-				if(AES_START)
-					Next_state = StartState;
+				if(AES_START == 1)
+					Next_state = FinishedWait1;
+				else
+					Next_State = Halted;
 			end
 			
 		endcase
 		
 		case (State)
-			Halted:;
+			Halted:
+				AES_DONE = 1'b0;
+				
 			StartState:
 				FUNC = 3'd6;
+				
 			End:
-			begin
-				AES_DONE = 1'b1;
-			end
-			FinishedWait1:
-			begin
-				AES_DONE = 1'b0;
-			end
-			
-			FinishedWait2:
-			begin
-				AES_DONE = 1'b0;
-			end
-			
-			FinishedWait3:
 			begin
 				AES_DONE = 1'b1;
 			end
